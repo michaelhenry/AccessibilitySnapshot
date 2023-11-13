@@ -7,7 +7,7 @@ let package = Package(
     name: "AccessibilitySnapshot",
     defaultLocalization: "en",
     platforms: [
-        .iOS(.v11),
+        .iOS(.v13),
     ],
     products: [
         // Core + SnapshotTesting for image comparison
