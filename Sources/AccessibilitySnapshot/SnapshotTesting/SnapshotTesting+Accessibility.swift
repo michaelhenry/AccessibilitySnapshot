@@ -47,14 +47,15 @@ extension Snapshotting where Value == UIView, Format == UIImage {
         useMonochromeSnapshot: Bool = true,
         drawHierarchyInKeyWindow: Bool = false,
         markerColors: [UIColor] = [],
-        precision: Float = 1.0
+        precision: Float = 1.0,
+        perceptualPrecision: Float = 1.0
     ) -> Snapshotting {
         guard isRunningInHostApplication else {
             fatalError("Accessibility snapshot tests cannot be run in a test target without a host application")
         }
 
         return Snapshotting<UIView, UIImage>
-            .image(drawHierarchyInKeyWindow: drawHierarchyInKeyWindow, precision: precision)
+            .image(drawHierarchyInKeyWindow: drawHierarchyInKeyWindow, precision: precision, perceptualPrecision: perceptualPrecision)
             .pullback { view in
                 let containerView = AccessibilitySnapshotView(
                     containedView: view,
@@ -186,7 +187,8 @@ extension Snapshotting where Value == UIViewController, Format == UIImage {
         useMonochromeSnapshot: Bool = true,
         drawHierarchyInKeyWindow: Bool = false,
         markerColors: [UIColor] = [],
-        precision: Float = 1.0
+        precision: Float = 1.0,
+        perceptualPrecision: Float = 1.0
     ) -> Snapshotting {
         return Snapshotting<UIView, UIImage>
             .accessibilityImage(
@@ -194,7 +196,8 @@ extension Snapshotting where Value == UIViewController, Format == UIImage {
                 useMonochromeSnapshot: useMonochromeSnapshot,
                 drawHierarchyInKeyWindow: drawHierarchyInKeyWindow,
                 markerColors: markerColors,
-                precision: precision
+                precision: precision,
+                perceptualPrecision: perceptualPrecision
             )
             .pullback { viewController in
                 viewController.view
