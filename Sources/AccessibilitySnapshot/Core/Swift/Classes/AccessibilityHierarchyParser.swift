@@ -14,6 +14,7 @@
 //  limitations under the License.
 //
 
+import Accessibility
 import UIKit
 
 public struct AccessibilityMarker {
@@ -38,6 +39,9 @@ public struct AccessibilityMarker {
 
     /// A hint that will be read by VoiceOver if focus remains on the element after the `description` is read.
     public var hint: String?
+    
+    /// The labels that will be used by Voice Control for user input.
+    public var userInputLabels: [String]?
 
     /// The shape that will be highlighted on screen while the element is in focus.
     public var shape: Shape
@@ -54,6 +58,9 @@ public struct AccessibilityMarker {
 
     /// The names of the custom actions supported by the element.
     public var customActions: [String]
+    
+    /// Any custom content included by the element.
+    public var customContent: [(label: String, value: String, isImportant:Bool)]
 
     /// The language code of the language used to localize strings in the description.
     public var accessibilityLanguage: String?
@@ -185,16 +192,33 @@ public final class AccessibilityHierarchyParser {
 
         return accessibilityElements.map { element in
             let (description, hint) = element.object.accessibilityDescription(context: element.context)
+            
+            let userInputLabels: [String]? = {
+                guard
+                    element.object.accessibilityRespondsToUserInteraction,
+                    let userInputLabels = element.object.accessibilityUserInputLabels,
+                    !userInputLabels.isEmpty
+                else {
+                    return nil
+                }
+
+                return userInputLabels
+            }()
 
             let activationPoint = element.object.accessibilityActivationPoint
 
             return AccessibilityMarker(
                 description: description,
                 hint: hint,
+                userInputLabels: userInputLabels,
                 shape: accessibilityShape(for: element.object, in: root),
                 activationPoint: root.convert(activationPoint, from: nil),
-                usesDefaultActivationPoint: (activationPoint == defaultActivationPoint(for: element.object)),
+                usesDefaultActivationPoint: activationPoint.approximatelyEquals(
+                    defaultActivationPoint(for: element.object),
+                    tolerance: 1 / (root.window?.screen ?? UIScreen.main).scale
+                ),
                 customActions: element.object.accessibilityCustomActions?.map { $0.name } ?? [],
+                customContent: element.object.customContent,
                 accessibilityLanguage: element.object.accessibilityLanguage
             )
         }
@@ -685,4 +709,45 @@ extension UIView {
         return newPath
     }
 
+}
+
+fileprivate extension NSObject {
+    var customContent: [(label: String, value: String, isImportant:Bool)] {
+        // Github runs tests on specific iOS versions against specific versions of Xcode in CI.
+        // Forward deployment on old versions of Xcode require a compile time check which require diferentiation by swift version rather than iOS SDK.
+        // See https://swiftversion.net/ for mapping swift version to Xcode versions.
+        
+        if #available(iOS 14.0, *) {
+            if let provider = self as? AXCustomContentProvider {
+                
+                // Swift 5.9 ships with Xcode 15 and the iOS 17 SDK.
+                #if swift(>=5.9)
+                if #available(iOS 17.0, *) {
+                    if let customContentBlock = provider.accessibilityCustomContentBlock {
+                        if let content = customContentBlock?() {
+                            return content.map { content in
+                                return (content.label, content.value, content.importance == .high)
+                            }
+                        }
+                    }
+                }
+                #endif //swift(>=5.9)
+                if let content = provider.accessibilityCustomContent {
+                    return content.map { content in
+                        return (content.label, content.value, content.importance == .high)
+                    }
+                }
+            }
+        }
+        return []
+    }
+}
+
+// MARK: -
+
+private extension CGPoint {
+
+    func approximatelyEquals(_ other: CGPoint, tolerance: CGFloat) -> Bool {
+        return abs(self.x - other.x) < tolerance && abs(self.y - other.y) < tolerance
+    }
 }

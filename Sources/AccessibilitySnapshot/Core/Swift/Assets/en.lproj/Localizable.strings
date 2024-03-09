@@ -35,13 +35,16 @@
 "trait.search_field.description" = "Search Field.";
 
 /* Description for the 'switch button' accessibility trait, when the switch is on */
-"trait.switch_button.state_on.description" = "Switch Button. On.";
+"trait.switch_button.state_on.description" = "On.";
 
 /* Description for the 'switch button' accessibility trait, when the switch is off */
-"trait.switch_button.state_off.description" = "Switch Button. Off.";
+"trait.switch_button.state_off.description" = "Off.";
 
-/* Description for the 'switch button' accessibility trait, when the state of the switch cannot be determined */
-"trait.switch_button.state_unspecified.description" = "Switch Button.";
+/* Description for the 'switch button' accessibility trait, when the switch is in a mixed state */
+"trait.switch_button.state_mixed.description" = "Mixed.";
+
+/* Description for the 'switch button' accessibility trait */
+"trait.switch_button.description" = "Switch Button.";
 
 /* Hint describing how to use elements with the 'switch button' accessibility trait */
 "trait.switch_button.hint" = "Double tap to toggle setting.";
@@ -78,3 +81,21 @@
 
 /* Description for an accessibility element indicating that it has custom actions available */
 "custom_actions.description" = "Actions Available";
+
+/* Description for an accessibility element indicating that it has additional custom content available */
+"custom_content.description" = "More Content Available";
+
+/* Description for the 'text entry' accessibility trait */
+"trait.text_field.description" = "Text Field.";
+
+/* Hint describing how to use elements with the 'text entry' accessibility trait */
+"trait.text_field.hint" = "Double tap to edit.";
+
+/* Hint describing how to use elements with the 'text entry' accessibility trait when they are being edited */
+"trait.text_field_is_editing.hint" = "Use the rotor to access Misspelled Words";
+
+/* Hint describing how to use elements with the 'text entry' and 'scrollable' accessibility traits */
+"trait.scrollable_text_field.hint" = "Double tap to edit., Use the rotor to access Misspelled Words";
+
+/* Description for the 'is editing' accessibility trait */
+"trait.text_field_is_editing.description" = "Is editing.";

@@ -21,36 +21,24 @@ final class InvertColorsViewController: AccessibilityViewController {
 
     // MARK: - Private Properties
 
-    private let nestedSubviews: [UIView] = (0..<5).map { _ in UIView() }
-
-    private let statusLabel: UILabel = .init()
-
     private var notificationObserver: AnyObject?
 
+    private var rootView: View {
+        return view as! View
+    }
+
     // MARK: - UIViewController
+
+    override func loadView() {
+        view = View()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        let nestedViews: [UIView] = [view] + nestedSubviews
-        for (view, subview) in zip(nestedViews.dropLast(), nestedViews.dropFirst()) {
-            view.addSubview(subview)
-        }
-
-        nestedSubviews[0].backgroundColor = .red
-
-        nestedSubviews[1].backgroundColor = .blue
-
-        nestedSubviews[2].backgroundColor = .green
-        nestedSubviews[2].accessibilityIgnoresInvertColors = true
-
-        nestedSubviews[3].backgroundColor = .yellow
-
-        nestedSubviews[4].backgroundColor = .purple
-        nestedSubviews[4].accessibilityIgnoresInvertColors = true
-
-        statusLabel.textColor = .white
-        nestedSubviews[2].addSubview(statusLabel)
+        // This additional call to updateStatusLabel() is needed because
+        // of a view life cycle issue with the snapshot test framework
+        updateStatusLabel()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -76,22 +64,70 @@ final class InvertColorsViewController: AccessibilityViewController {
         }
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-
-        for view in nestedSubviews {
-            view.frame = view.superview!.bounds.inset(left: 30, top: 60, right: 30, bottom: 60)
-        }
-
-        statusLabel.sizeToFit()
-        statusLabel.alignToSuperview(.topCenter, inset: 20)
-    }
-
     // MARK: - Private Methods
 
     private func updateStatusLabel() {
-        statusLabel.text = UIAccessibility.isInvertColorsEnabled ? "Enabled" : "Disabled"
-        view.setNeedsLayout()
+        rootView.statusLabel.text = UIAccessibility.isInvertColorsEnabled ? "Enabled" : "Disabled"
+        rootView.setNeedsLayout()
+    }
+
+}
+
+// MARK: -
+
+private extension InvertColorsViewController {
+
+    final class View: UIView {
+
+        // MARK: - Life Cycle
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+
+            let nestedViews: [UIView] = [self] + nestedSubviews
+            for (view, subview) in zip(nestedViews.dropLast(), nestedViews.dropFirst()) {
+                view.addSubview(subview)
+            }
+
+            nestedSubviews[0].backgroundColor = .red
+
+            nestedSubviews[1].backgroundColor = .blue
+
+            nestedSubviews[2].backgroundColor = .green
+            nestedSubviews[2].accessibilityIgnoresInvertColors = true
+
+            nestedSubviews[3].backgroundColor = .yellow
+
+            nestedSubviews[4].backgroundColor = .purple
+            nestedSubviews[4].accessibilityIgnoresInvertColors = true
+
+            statusLabel.textColor = .white
+            nestedSubviews[2].addSubview(statusLabel)
+        }
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // MARK: - Private Properties
+
+        private let nestedSubviews: [UIView] = (0..<5).map { _ in UIView() }
+
+        let statusLabel: UILabel = .init()
+
+        // MARK: - UIView
+
+        override func layoutSubviews() {
+            let nestedViews: [UIView] = [self] + nestedSubviews
+            for (containingView, subview) in zip(nestedViews.dropLast(), nestedViews.dropFirst()) {
+                subview.frame = containingView.bounds.insetBy(left: 30, top: 60, right: 30, bottom: 60)
+            }
+
+            statusLabel.sizeToFit()
+            statusLabel.capInsetsAlignmentProxy.align(withSuperview: .topCenter, inset: 20)
+        }
+
     }
 
 }

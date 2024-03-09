@@ -21,24 +21,15 @@ final class TabBarViewController: AccessibilityViewController {
 
     // MARK: - Private Properties
 
-    private let tabBar: UITabBar = .init()
-
-    private let tabBarWithBadging: UITabBar = .init()
-
-    private let tabBarTraitView: TabBarTraitView = .init()
-
-    private let tabBarTraitContainerView: TabBarTraitContainerView = .init()
-
-    private var tabBarViews: [UIView] {
-        return [
-            tabBar,
-            tabBarWithBadging,
-            tabBarTraitView,
-            tabBarTraitContainerView,
-        ]
+    private var rootView: View {
+        return view as! View
     }
 
     // MARK: - UIViewController
+
+    override func loadView() {
+        view = View()
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -62,8 +53,8 @@ final class TabBarViewController: AccessibilityViewController {
         overriddenUntitledItem.accessibilityValue = "Value"
         overriddenUntitledItem.accessibilityHint = "Hint"
 
-        tabBar.items = [standardItem, selectedItem, disabledItem, untitledItem, overriddenItem, overriddenUntitledItem]
-        tabBar.selectedItem = selectedItem
+        rootView.tabBar.items = [standardItem, selectedItem, disabledItem, untitledItem, overriddenItem, overriddenUntitledItem]
+        rootView.tabBar.selectedItem = selectedItem
 
         let emptyBadgedItem = UITabBarItem(title: "Item A", image: nil, selectedImage: nil)
         emptyBadgedItem.badgeValue = ""
@@ -78,24 +69,66 @@ final class TabBarViewController: AccessibilityViewController {
         overriddenBadgedItem.badgeValue = "3"
         overriddenBadgedItem.accessibilityValue = "Value"
 
-        tabBarWithBadging.items = [emptyBadgedItem, numberBadgedItem, textBadgedItem, overriddenBadgedItem]
-
-        tabBarViews.forEach(view.addSubview)
+        rootView.tabBarWithBadging.items = [emptyBadgedItem, numberBadgedItem, textBadgedItem, overriddenBadgedItem]
     }
 
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
+}
 
-        tabBarViews.forEach { $0.frame.size = $0.sizeThatFits(view.bounds.size) }
+// MARK: -
 
-        let statusBarHeight = UIApplication.shared.statusBarFrame.height
+extension TabBarViewController {
 
-        var distributionSpecifiers: [ViewDistributionSpecifying] = [ statusBarHeight.fixed, 1.flexible ]
-        for subview in tabBarViews {
-            distributionSpecifiers.append(subview)
-            distributionSpecifiers.append(1.flexible)
+    final class View: UIView {
+
+        // MARK: - Life Cycle
+
+        override init(frame: CGRect) {
+            super.init(frame: frame)
+
+            tabBarViews.forEach(addSubview)
         }
-        view.applySubviewDistribution(distributionSpecifiers)
+
+        @available(*, unavailable)
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        // MARK: - Public Properties
+
+        let tabBar: UITabBar = .init()
+
+        let tabBarWithBadging: UITabBar = .init()
+
+        // MARK: - Private Properties
+
+        private let tabBarTraitView: TabBarTraitView = .init()
+
+        private let tabBarTraitContainerView: TabBarTraitContainerView = .init()
+
+        private var tabBarViews: [UIView] {
+            return [
+                tabBar,
+                tabBarWithBadging,
+                tabBarTraitView,
+                tabBarTraitContainerView,
+            ]
+        }
+
+        // MARK: - UIView
+
+        override func layoutSubviews() {
+            tabBarViews.forEach { $0.bounds.size = $0.sizeThatFits(bounds.size) }
+
+            let statusBarHeight = window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+
+            var distributionSpecifiers: [ViewDistributionSpecifying] = [ statusBarHeight.fixed, 1.flexible ]
+            for subview in tabBarViews {
+                distributionSpecifiers.append(subview)
+                distributionSpecifiers.append(1.flexible)
+            }
+            applyVerticalSubviewDistribution(distributionSpecifiers)
+        }
+
     }
 
 }
@@ -172,7 +205,7 @@ private final class TabBarTraitView: UIView {
 
     override func layoutSubviews() {
         tabs.forEach { $0.frame.size.height = bounds.height }
-        spreadOutSubviews(tabs, margin: 0)
+        horizontallySpreadSubviews(tabs, margin: 0)
     }
 
     override func sizeThatFits(_ size: CGSize) -> CGSize {
@@ -237,13 +270,13 @@ private final class TabBarTraitView: UIView {
             outerLabelContainer.frame = bounds
 
             leftLabel.sizeToFit()
-            leftLabel.alignToSuperview(.leftCenter, inset: 4)
+            leftLabel.capInsetsAlignmentProxy.align(withSuperview: .leftCenter, inset: 4)
 
             rightLabel.sizeToFit()
-            rightLabel.alignToSuperview(.rightCenter, inset: 4)
+            rightLabel.capInsetsAlignmentProxy.align(withSuperview: .rightCenter, inset: 4)
 
             middleLabel.sizeToFit()
-            middleLabel.alignToSuperview(.center)
+            middleLabel.capInsetsAlignmentProxy.align(withSuperview: .center)
         }
 
     }
@@ -319,7 +352,7 @@ private final class TabBarTraitContainerView: UIView {
     override func layoutSubviews() {
         itemLabels.forEach { $0.frame.size.height = bounds.height }
 
-        spreadOutSubviews(itemLabels, margin: 0)
+        horizontallySpreadSubviews(itemLabels, margin: 0)
 
         for (label, element) in zip(itemLabels, accessibilityElements as! [UIAccessibilityElement]) {
             element.accessibilityFrameInContainerSpace = label.frame

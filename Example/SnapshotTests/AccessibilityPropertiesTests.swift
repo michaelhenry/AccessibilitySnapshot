@@ -40,6 +40,12 @@ final class AccessibilitySnapshotTests: SnapshotTestCase {
         SnapshotVerifyAccessibility(buttonTraitsViewController.view)
     }
 
+    func testSwitchControls() {
+        let switchControlViewController = SwitchControlViewController()
+        switchControlViewController.view.frame = UIScreen.main.bounds
+        SnapshotVerifyAccessibility(switchControlViewController.view)
+    }
+
     func testDescriptionEdgeCases() {
         let descriptionEdgeCasesViewController = DescriptionEdgeCasesViewController()
         descriptionEdgeCasesViewController.view.frame = UIScreen.main.bounds
@@ -63,6 +69,18 @@ final class AccessibilitySnapshotTests: SnapshotTestCase {
         customActionsViewController.view.frame = UIScreen.main.bounds
         SnapshotVerifyAccessibility(customActionsViewController.view)
     }
+    
+    @available(iOS 14.0, *)
+    func testCustomContent() throws {
+        try XCTSkipUnless(
+            ProcessInfo().operatingSystemVersion.majorVersion >= 14,
+            "This test only supports iOS 14 and later"
+        )
+        
+        let customContentViewController = AccessibilityCustomContentViewController()
+        customContentViewController.view.frame = UIScreen.main.bounds
+        SnapshotVerifyAccessibility(customContentViewController.view)
+    }
 
     func testLargeView() throws {
         let view = UIView(frame: CGRect(x: 0, y: 0, width: 1400, height: 1400))
@@ -74,7 +92,7 @@ final class AccessibilitySnapshotTests: SnapshotTestCase {
         view.addSubview(label)
 
         label.sizeToFit()
-        label.center = view.point(at: .center)
+        label.align(withSuperview: .center)
 
         if ProcessInfo().operatingSystemVersion.majorVersion != 13 {
             SnapshotVerifyAccessibility(view, identifier: "monochrome", useMonochromeSnapshot: true)
@@ -104,7 +122,7 @@ final class AccessibilitySnapshotTests: SnapshotTestCase {
         view.addSubview(label)
 
         label.sizeToFit()
-        label.center = view.point(at: .center)
+        label.align(withSuperview: .center)
 
         let viewController = UIViewController()
         viewController.view = view
@@ -129,7 +147,7 @@ final class AccessibilitySnapshotTests: SnapshotTestCase {
         view.addSubview(label)
 
         label.sizeToFit()
-        label.center = view.point(at: .center)
+        label.align(withSuperview: .center)
 
         let viewController = UIViewController()
         viewController.view.addSubview(view)

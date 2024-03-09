@@ -1,17 +1,22 @@
 # AccessibilitySnapshot
 
-[![CI Status](https://img.shields.io/travis/CashApp/AccessibilitySnapshot.svg?style=flat)](https://travis-ci.org/CashApp/AccessibilitySnapshot)
+[![CI Status](https://img.shields.io/github/actions/workflow/status/CashApp/AccessibilitySnapshot/ci.yml?branch=master)](https://github.com/CashApp/AccessibilitySnapshot/actions?query=workflow%3ACI+branch%3Amaster)
 [![Version](https://img.shields.io/cocoapods/v/AccessibilitySnapshot.svg?style=flat)](https://cocoapods.org/pods/AccessibilitySnapshot)
 [![License](https://img.shields.io/cocoapods/l/AccessibilitySnapshot.svg?style=flat)](https://cocoapods.org/pods/AccessibilitySnapshot)
 [![Platform](https://img.shields.io/cocoapods/p/AccessibilitySnapshot.svg?style=flat)](https://cocoapods.org/pods/AccessibilitySnapshot)
 
-AccessibilitySnapshots makes it simple to add regression tests for accessibility in UIKit.
+AccessibilitySnapshot makes it simple to add regression tests for accessibility in iOS apps. The framework builds on the idea of snapshot testing to provide snapshots of the accessibility hierarchy.
+
+<p align="center">
+    <img src="Documentation/Assets/HeroSample.png">
+</p>
 
 ## Getting Started
 
 By default, AccessibilitySnapshot uses [SnapshotTesting](https://github.com/pointfreeco/swift-snapshot-testing) to record snapshots and perform comparisons. The framework also includes support for using [iOSSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case) as the snapshotting engine instead. Before setting up accessibility snapshot tests, make sure your project is set up for standard snapshot testing. Accessibility snapshot tests require that the test target has a host application. See the [Extensions](#extensions) section below for a list of other available snapshotting options.
 
-### CocoaPods
+<details>
+<summary><h3>CocoaPods</h3></summary>
 
 Install with [CocoaPods](https://cocoapods.org) by adding the following to your `Podfile`:
 
@@ -30,8 +35,10 @@ Alternatively, if you wish to use [iOSSnapshotTestCase](https://github.com/uber/
 ```ruby
 pod 'AccessibilitySnapshot/iOSSnapshotTestCase'
 ```
+</details>
 
-### Swift Package Manager
+<details>
+<summary><h3>Swift Package Manager</h3></summary>
 
 Install with [Swift Package Manager](https://swift.org/package-manager/) by adding the following to your `Package.swift`:
 
@@ -59,7 +66,90 @@ targets: [
 ]
 ```
 
-We do not currently support AccessibilitySnapshot and [iOSSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case) through Swift Package Manager.
+To use [iOSSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case) to perform image comparisons, add a dependency on `FBSnapshotTestCase+Accessibility` for Swift testing or `FBSnapshotTestCase+Accessibility-ObjC` for Objective-C.
+
+```swift
+targets: [
+    .target(name: "MyApp"),
+    .testTarget(name: "MyAppTests", dependencies: ["MyApp", "FBSnapshotTestCase+Accessibility"])
+]
+```
+</details>
+
+<details>
+<summary><h3>Carthage</h3></summary>
+
+Only the core accessibility parser (not the snapshot integration layers) can be installed via Carthage. To install AccessibilitySnapshotCore via [Carthage](https://github.com/Carthage/Carthage), add the following to your `Cartfile`:
+
+```ogdl
+github "cashapp/AccessibilitySnapshot"
+```
+</details>
+
+<details>
+<summary><h3>Bazel</h3></summary>
+
+Add the following to your `MODULE.bazel` file:
+
+```starlark
+bazel_dep(
+    name = "accessibility_snapshot",
+    version = "x.x.x",
+)
+```
+
+Use the provided targets in the `BUILD.bazel` files. There is a `*_library` target for each target suffixed with `.lib` that can be used as a dependency. Without the suffix you will get an `ios_framework` target (dynamic).
+
+```starlark
+
+swift_library(
+    name = "MyLibrary",
+    ...,
+    deps = [
+        "//Sources/AccessibilitySnapshot/Core:AccessibilitySnapshotCore.lib",
+    ],
+)
+```
+
+To use [iOSSnapshotTestCase](https://github.com/uber/ios-snapshot-test-case) you can add a dependency on the `//Sources/AccessibilitySnapshot/iOSSnapshotTestCase:AccessibilitySnapshot_iOSSnapshotTestCase` targets.
+
+For example:
+
+```starlark
+swift_test(
+    name = "MyLibraryTests",
+    ...,
+    deps = [
+        "//Sources/AccessibilitySnapshot/Core:AccessibilitySnapshotCore.lib",
+        "//Sources/AccessibilitySnapshot/iOSSnapshotTestCase:AccessibilitySnapshot_iOSSnapshotTestCase",
+    ],
+)
+```
+
+```swift
+import AccessibilitySnapshot_iOSSnapshotTestCase
+```
+
+To use [SnapshotTesting](https://github.com/pointfreeco/swift-snapshot-testing) you can add a dependency on the `//Sources/AccessibilitySnapshot/SnapshotTesting:AccessibilitySnapshot_SnapshotTesting` targets.
+
+For example:
+
+```starlark
+swift_test(
+    name = "MyLibraryTests",
+    ...,
+    deps = [
+        "//Sources/AccessibilitySnapshot/Core:AccessibilitySnapshotCore.lib",
+        "//Sources/AccessibilitySnapshot/SnapshotTesting:AccessibilitySnapshot_SnapshotTesting",
+    ],
+)
+```
+
+```swift
+import AccessibilitySnapshot_SnapshotTesting
+```
+
+</details>
 
 ## Usage
 
@@ -146,8 +236,8 @@ You can also run accessibility snapshot tests from Objective-C:
 
 ## Requirements
 
-* Xcode 12.0 or later
-* iOS 12.0 or later
+* Xcode 13.2.1 or later
+* iOS 13.0 or later
 
 ## Contributing
 

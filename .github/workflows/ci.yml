@@ -9,19 +9,19 @@ on:
 jobs:
   xcode-build:
     name: Xcode Build
-    runs-on: macOS-10.15
+    runs-on: macOS-13
     strategy:
       matrix:
-        platform: ['iOS_14', 'iOS_13', 'iOS_12']
+        platform: ['iOS_17', 'iOS_16']
       fail-fast: false
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
       - name: Bundle Install
         run: bundle install --gemfile=Example/Gemfile
-      - name: Select Xcode Version (12.2)
-        run: sudo xcode-select --switch /Applications/Xcode_12.2.app/Contents/Developer
-        if: matrix.platform == 'iOS_14'
       - name: Prepare Simulator Runtimes
         run: Scripts/github/prepare-simulators.sh ${{ matrix.platform }}
       - name: Pod Install
@@ -29,17 +29,47 @@ jobs:
       - name: Build and Test
         run: Scripts/build.swift xcode ${{ matrix.platform }} `which xcpretty`
       - name: Upload Results
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: Test Results
+          name: Test Results (${{ matrix.platform }})
+          path: .build/derivedData/**/Logs/Test/*.xcresult
+  xcode-build-legacy:
+    name: Xcode Build
+    runs-on: macOS-11
+    strategy:
+      matrix:
+        platform: ['iOS_14', 'iOS_13']
+      fail-fast: false
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
+      - name: Bundle Install
+        run: bundle install --gemfile=Example/Gemfile
+      - name: Prepare Simulator Runtimes
+        run: Scripts/github/prepare-simulators.sh ${{ matrix.platform }}
+      - name: Pod Install
+        run: bundle exec --gemfile=Example/Gemfile pod install --project-directory=Example
+      - name: Build and Test
+        run: Scripts/build.swift xcode ${{ matrix.platform }} `which xcpretty`
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Test Results (${{ matrix.platform }})
           path: .build/derivedData/**/Logs/Test/*.xcresult
   pod-lint:
     name: Pod Lint
-    runs-on: macOS-10.15
+    runs-on: macOS-11
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2.2'
       - name: Bundle Install
         run: bundle install --gemfile=Example/Gemfile
       - name: Pod Install
@@ -48,15 +78,39 @@ jobs:
         run: bundle exec --gemfile=Example/Gemfile pod lib lint --verbose --fail-fast
   spm:
     name: SPM Build
-    runs-on: macOS-10.15
+    runs-on: macOS-11
     strategy:
       matrix:
         platform: ['iOS_14']
       fail-fast: false
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v2
-      - name: Select Xcode Version
-        run: sudo xcode-select --switch /Applications/Xcode_12.2.app/Contents/Developer
+        uses: actions/checkout@v4
+      - name: Prepare Simulator Runtimes
+        run: Scripts/github/prepare-simulators.sh ${{ matrix.platform }}
       - name: Build
         run: Scripts/build.swift spm ${{ matrix.platform }}
+  carthage:
+    name: Carthage Build
+    runs-on: macOS-13
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Build
+        run: carthage build --no-skip-current --platform iOS --use-xcframeworks --verbose
+  bazel:
+    name: Bazel Build
+    runs-on: macOS-13
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Build
+        run: bazel build //...
+  validate-strings:
+    name: Validate Localized Strings
+    runs-on: macOS-13
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+      - name: Validate Localized Strings
+        run: Scripts/ValidateLocalizedStrings.swift

@@ -25,33 +25,21 @@ final class SnapshotTestingTests: XCTestCase {
 
     // MARK: - Tests
 
-    #if swift(>=5.1) && canImport(SwiftUI)
-
-    @available(iOS 13.0, *)
     func testSimpleSwiftUIConfiguration() throws {
-        guard isOperatingSystemAtLeast13() else {
-            print("SwiftUI Views are only supported with iOS 13 or later.")
-            return
-        }
-
-        let viewController = SwiftUIView().embedInHostingController()
-        viewController.view.frame = UIScreen.main.bounds
-        assertSnapshot(matching: viewController, as: .accessibilityImage, named: nameForDevice())
+        assertSnapshot(
+            matching: SwiftUIView(),
+            as: .accessibilityImage(size: UIScreen.main.bounds.size),
+            named: nameForDevice()
+        )
     }
 
-    @available(iOS 13.0, *)
     func testSimpleSwiftUIWithScrollViewConfiguration() throws {
-        guard isOperatingSystemAtLeast13() else {
-            print("SwiftUI Views are only supported with iOS 13 or later.")
-            return
-        }
-
-        let viewController = SwiftUIViewWithScrollView().embedInHostingController()
-        viewController.view.frame = UIScreen.main.bounds
-        assertSnapshot(matching: viewController, as: .accessibilityImage, named: nameForDevice())
+        assertSnapshot(
+            matching: SwiftUIViewWithScrollView(),
+            as: .accessibilityImage(size: UIScreen.main.bounds.size),
+            named: nameForDevice()
+        )
     }
-
-    #endif
 
     func testSimpleConfiguration() {
         let viewController = ViewAccessibilityPropertiesViewController()
@@ -150,6 +138,45 @@ final class SnapshotTestingTests: XCTestCase {
         assertSnapshot(matching: viewController, as: .imageWithSmartInvert, named: nameForDevice())
     }
 
+    func testHitTargets() {
+        let viewController = ButtonAccessibilityTraitsViewController()
+        viewController.view.frame = UIScreen.main.bounds
+        assertSnapshot(matching: viewController, as: .imageWithHitTargets(), named: nameForDevice())
+    }
+
+    func testUIKitTextField() {
+        let viewController = TextFieldViewController()
+        viewController.view.frame = UIScreen.main.bounds
+
+        assertSnapshot(
+            matching: viewController,
+            as: .accessibilityImage,
+            named: nameForDevice()
+        )
+    }
+
+    func testUIKitTextView() {
+        let viewController = TextViewViewController()
+        viewController.view.frame = UIScreen.main.bounds
+
+        assertSnapshot(
+            matching: viewController,
+            as: .accessibilityImage,
+            named: nameForDevice()
+        )
+    }
+
+    func testSwiftUITextEntry() {
+        let view = SwiftUITextEntry()
+            .frame(width: UIScreen.main.bounds.width, height: UIScreen.main.bounds.height)
+
+        assertSnapshot(
+            matching: view,
+            as: .accessibilityImage,
+            named: nameForDevice()
+        )
+    }
+
     // MARK: - Private Methods
 
     private func nameForDevice(baseName: String? = nil) -> String {
@@ -161,21 +188,6 @@ final class SnapshotTestingTests: XCTestCase {
         return [baseName, deviceName]
             .compactMap { $0 }
             .joined(separator: "-")
-    }
-
-    /// To check if the operating system is at least iOS 13.
-    ///
-    /// This is needed to be able to skip tests which don't support SwiftUI for
-    /// example, because an `@available` check for the test case isn't enough to
-    /// skip the test on older iOS versions.
-    /// - Returns: A boolean whether the system is at least iOS 13 or not.
-    private func isOperatingSystemAtLeast13() -> Bool {
-        let iOS13 = OperatingSystemVersion(
-            majorVersion: 13,
-            minorVersion: 0,
-            patchVersion: 0
-        )
-        return ProcessInfo().isOperatingSystemAtLeast(iOS13)
     }
 
 }

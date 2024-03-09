@@ -18,11 +18,11 @@ import UIKit
 
 extension NSObject {
 
-    /// Returns a tuple consisting of the `description`, and optionally a `hint`, that VoiceOver will read for the object.
+    /// Returns a tuple consisting of the `description` and (optionally) a `hint` that VoiceOver will read for the object.
     func accessibilityDescription(context: AccessibilityHierarchyParser.Context?) -> (description: String, hint: String?) {
         var accessibilityDescription = accessibilityLabelOverride(for: context) ?? accessibilityLabel ?? ""
 
-        var hintDescription = hidesAccessibilityHint() ? nil : accessibilityHint?.nonEmpty()
+        var hintDescription = accessibilityHint?.nonEmpty()
 
         let strings = Strings(locale: accessibilityLanguage)
 
@@ -107,25 +107,43 @@ extension NSObject {
         }
 
         if accessibilityTraits.contains(.switchButton) {
-            if let `self` = self as? UISwitch {
-                if self.isOn {
-                    traitSpecifiers.append(strings.switchButtonOnTraitName)
-                } else {
-                    traitSpecifiers.append(strings.switchButtonOffTraitName)
-                }
+            if accessibilityTraits.contains(.button) {
+                // An element can have the private switch button trait without being a UISwitch (for example, by passing
+                // through the traits of a contained switch). In this case, VoiceOver will still read the "Switch
+                // Button." trait, but only if the element's traits also include the `.button` trait.
+                traitSpecifiers.append(strings.switchButtonTraitName)
+            }
 
-            } else if accessibilityTraits.contains(.button) {
-                // An element can have the private switch button trait without being a UISwitch (for example, by passing through
-                // the traits of a contained switch). In this case, VoiceOver will still read the "Switch Button." trait, but
-                // will not read whether or not the switch is turned on. If the element's traits do not also include the `.button`
-                // trait, VoiceOver will not read the trait description.
-                traitSpecifiers.append(strings.switchButtonStatelessTraitName)
+            switch accessibilityValue {
+            case "1":
+                traitSpecifiers.append(strings.switchButtonOnStateName)
+            case "0":
+                traitSpecifiers.append(strings.switchButtonOffStateName)
+            case "2":
+                traitSpecifiers.append(strings.switchButtonMixedStateName)
+            default:
+                // When the switch button trait is set, unknown accessibility values are omitted from the description.
+                break
             }
         }
 
         let showsTabTraitInContext = context?.showsTabTrait ?? false
         if accessibilityTraits.contains(.tabBarItem) || showsTabTraitInContext {
             traitSpecifiers.append(strings.tabTraitName)
+        }
+
+        if accessibilityTraits.contains(.textEntry) {
+            if accessibilityTraits.contains(.scrollable) {
+                // This is a UITextView/TextEditor
+            } else {
+                // This is a UITextField/TextField
+            }
+
+            traitSpecifiers.append(strings.textEntryTraitName)
+
+            if accessibilityTraits.contains(.isEditing) {
+                traitSpecifiers.append(strings.isEditingTraitName)
+            }
         }
 
         if accessibilityTraits.contains(.header) {
@@ -225,6 +243,20 @@ extension NSObject {
             }
         }
 
+        if accessibilityTraits.contains(.textEntry) && !accessibilityTraits.contains(.notEnabled) {
+            if accessibilityTraits.contains(.isEditing) {
+                hintDescription = strings.textEntryIsEditingTraitHint
+            } else {
+                if accessibilityTraits.contains(.scrollable) {
+                    // This is a UITextView/TextEditor
+                    hintDescription = strings.scrollableTextEntryTraitHint
+                } else {
+                    // This is a UITextField/TextField
+                    hintDescription = strings.textEntryTraitHint
+                }
+            }
+        }
+
         let hasHintOnly = (accessibilityHint?.nonEmpty() != nil) && (accessibilityLabel?.nonEmpty() == nil) && (accessibilityValue?.nonEmpty() == nil)
         let hidesAdjustableHint = accessibilityTraits.contains(.notEnabled) || accessibilityTraits.contains(.switchButton) || hasHintOnly
         if accessibilityTraits.contains(.adjustable) && !hidesAdjustableHint {
@@ -246,12 +278,8 @@ extension NSObject {
         }
 
         switch context {
-        case let .tabBarItem(index: _, count: _, item: item):
-            if NSObject.majorOSVersion == 12 {
-                return item.title ?? ""
-            } else {
-                return nil
-            }
+        case .tabBarItem(index: _, count: _, item: _):
+            return nil
 
         case .series, .tab, .dataTableCell, .listStart, .listEnd, .landmarkStart, .landmarkEnd:
             return nil
@@ -268,29 +296,15 @@ extension NSObject {
         }
 
         switch context {
-        case let .tabBarItem(index: _, count: _, item: item):
-            if NSObject.majorOSVersion >= 13 {
-                return false
-            } else {
-                return item.badgeValue == nil
-            }
+        case .tabBarItem(index: _, count: _, item: _):
+            return false
 
         case .series, .tab, .dataTableCell, .listStart, .listEnd, .landmarkStart, .landmarkEnd:
             return false
         }
     }
 
-    private func hidesAccessibilityHint() -> Bool {
-        if NSObject.majorOSVersion >= 13 {
-            return false
-        } else {
-            return accessibilityTraits.contains(.tabBarItem)
-        }
-    }
-
     // MARK: - Private Static Properties
-
-    private static let majorOSVersion = Int(String(UIDevice.current.systemVersion.split(separator: ".").first!))!
 
     // MARK: - Private
 
@@ -322,11 +336,13 @@ extension NSObject {
 
         let searchFieldTraitName: String
 
-        let switchButtonOnTraitName: String
+        let switchButtonTraitName: String
 
-        let switchButtonOffTraitName: String
+        let switchButtonOnStateName: String
 
-        let switchButtonStatelessTraitName: String
+        let switchButtonOffStateName: String
+
+        let switchButtonMixedStateName: String
 
         let switchButtonTraitHint: String
 
@@ -349,6 +365,16 @@ extension NSObject {
         let landmarkStartContext: String
 
         let landmarkEndContext: String
+
+        let textEntryTraitName: String
+
+        let textEntryTraitHint: String
+
+        let textEntryIsEditingTraitHint: String
+
+        let scrollableTextEntryTraitHint: String
+
+        let isEditingTraitName: String
 
         // MARK: - Life Cycle
 
@@ -414,19 +440,24 @@ extension NSObject {
                 comment: "Description for the 'search field' accessibility trait",
                 locale: locale
             )
-            self.switchButtonOnTraitName = "Switch Button. On.".localized(
+            self.switchButtonTraitName = "Switch Button.".localized(
+                key: "trait.switch_button.description",
+                comment: "Description for the 'switch button' accessibility trait",
+                locale: locale
+            )
+            self.switchButtonOnStateName = "On.".localized(
                 key: "trait.switch_button.state_on.description",
                 comment: "Description for the 'switch button' accessibility trait, when the switch is on",
                 locale: locale
             )
-            self.switchButtonOffTraitName = "Switch Button. Off.".localized(
+            self.switchButtonOffStateName = "Off.".localized(
                 key: "trait.switch_button.state_off.description",
                 comment: "Description for the 'switch button' accessibility trait, when the switch is off",
                 locale: locale
             )
-            self.switchButtonStatelessTraitName = "Switch Button.".localized(
-                key: "trait.switch_button.state_unspecified.description",
-                comment: "Description for the 'switch button' accessibility trait, when the state of the switch cannot be determined",
+            self.switchButtonMixedStateName = "Mixed.".localized(
+                key: "trait.switch_button.state_mixed.description",
+                comment: "Description for the 'switch button' accessibility trait, when the switch is in a mixed state",
                 locale: locale
             )
             self.switchButtonTraitHint = "Double tap to toggle setting.".localized(
@@ -486,6 +517,31 @@ extension NSObject {
                 comment: "Description of the last element in a landmark container",
                 locale: locale
             )
+            self.textEntryTraitName = "Text Field.".localized(
+                key: "trait.text_field.description",
+                comment: "Description for the 'text entry' accessibility trait",
+                locale: locale
+            )
+            self.textEntryTraitHint = "Double tap to edit.".localized(
+                key: "trait.text_field.hint",
+                comment: "Hint describing how to use elements with the 'text entry' accessibility trait",
+                locale: locale
+            )
+            self.textEntryIsEditingTraitHint = "Use the rotor to access Misspelled Words".localized(
+                key: "trait.text_field_is_editing.hint",
+                comment: "Hint describing how to use elements with the 'text entry' accessibility trait when they are being edited",
+                locale: locale
+            )
+            self.scrollableTextEntryTraitHint = "Double tap to edit., Use the rotor to access Misspelled Words".localized(
+                key: "trait.scrollable_text_field.hint",
+                comment: "Hint describing how to use elements with the 'text entry' and 'scrollable' accessibility traits",
+                locale: locale
+            )
+            self.isEditingTraitName = "Is editing.".localized(
+                key: "trait.text_field_is_editing.description",
+                comment: "Description for the 'is editing' accessibility trait",
+                locale: locale
+            )
         }
 
     }
@@ -519,6 +575,11 @@ extension UIAccessibilityTraits {
 
     static let switchButton = UIAccessibilityTraits(rawValue: 0x0020000000000000)
 
+    static let isEditing = UIAccessibilityTraits(rawValue: 0x0000000000200000)
+
+    static let textEntry = UIAccessibilityTraits(rawValue: 0x0000000000040000)
+
+    static let scrollable = UIAccessibilityTraits(rawValue: 0x0000800000000000)
 }
 
 // MARK: -

@@ -14,6 +14,7 @@
 //  limitations under the License.
 //
 
+import SwiftUI
 import UIKit
 
 final class RootViewController: UITableViewController {
@@ -25,7 +26,7 @@ final class RootViewController: UITableViewController {
     // MARK: - Life Cycle
 
     init() {
-        self.accessibilityScreens = [
+        var accessibilityScreens = [
             ("View Accessibility Properties", { _ in return ViewAccessibilityPropertiesViewController() }),
             ("Label Accessibility Properties", { _ in return LabelAccessibilityPropertiesViewController() }),
             ("Button Accessibility Traits", { _ in return ButtonAccessibilityTraitsViewController() }),
@@ -52,7 +53,6 @@ final class RootViewController: UITableViewController {
             ("Accessibility Paths", { _ in return AccessibilityPathViewController() }),
             ("Accessibility Activation Point", { _ in return ActivationPointViewController() }),
             ("Accessibility Custom Actions", { _ in return AccessibilityCustomActionsViewController() }),
-            ("Dynamic Type", { _ in return DynamicTypeViewController() }),
             ("Data Table", { presentingViewController in
                 return DataTableViewController.makeConfigurationSelectionViewController(
                     presentingViewController: presentingViewController
@@ -61,8 +61,16 @@ final class RootViewController: UITableViewController {
             ("List Container", { _ in return ListContainerViewController() }),
             ("Landmark Container", { _ in return LandmarkContainerViewController() }),
             ("Invert Colors", { _ in return InvertColorsViewController() }),
+            ("User Input Labels", { _ in return UserInputLabelsViewController() }),
+            ("Text Field", { _ in return TextFieldViewController() }),
+            ("Text View", { _ in return TextViewViewController() }),
+            ("SwiftUI Text Entry", { _ in return UIHostingController(rootView: SwiftUITextEntry()) }),
         ]
-
+        if #available(iOS 14.0, *) {
+            accessibilityScreens.append( ("Accessibility Custom Content", { _ in return AccessibilityCustomContentViewController() }))
+        }
+        self.accessibilityScreens = accessibilityScreens
+        
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -89,6 +97,7 @@ final class RootViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let viewController = accessibilityScreens[indexPath.row].1(self)
+        viewController.modalPresentationStyle = .fullScreen
         present(viewController, animated: true, completion: nil)
         tableView.deselectRow(at: indexPath, animated: true)
     }

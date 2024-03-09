@@ -31,6 +31,7 @@
     [super setUp];
 
     self.fileNameOptions = FBSnapshotTestCaseFileNameIncludeOptionOS | FBSnapshotTestCaseFileNameIncludeOptionScreenSize | FBSnapshotTestCaseFileNameIncludeOptionScreenScale;
+    self.recordMode = NO;
 }
 
 - (void)testSimpleView;
@@ -89,7 +90,7 @@
     label.textAlignment = NSTextAlignmentCenter;
     [view addSubview:label];
 
-    SnapshotVerifyAccessibilityWithOptions(view, nil, YES, YES);
+    SnapshotVerifyAccessibilityWithOptions(view, nil, YES, YES, NO);
 }
 
 - (void)testSimpleViewWithActivationPointNever;
@@ -106,7 +107,7 @@
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     label.accessibilityActivationPoint = CGPointMake(screenBounds.size.width / 2, screenBounds.size.height / 2 - 10);
 
-    SnapshotVerifyAccessibilityWithOptions(view, nil, NO, YES);
+    SnapshotVerifyAccessibilityWithOptions(view, nil, NO, YES, NO);
 }
 
 - (void)testSimpleViewWithColorSnapshots;
@@ -123,7 +124,7 @@
     CGRect screenBounds = [[UIScreen mainScreen] bounds];
     label.accessibilityActivationPoint = CGPointMake(screenBounds.size.width / 2, screenBounds.size.height / 2 - 10);
 
-    SnapshotVerifyAccessibilityWithOptions(view, nil, NO, NO);
+    SnapshotVerifyAccessibilityWithOptions(view, nil, NO, NO, NO);
 }
 
 - (void)testViewWithInvertedColors;
@@ -138,6 +139,18 @@
     [view addSubview:subview];
 
     SnapshotVerifyWithInvertedColors(view, nil);
+}
+
+- (void)testHitTargets;
+{
+    UIView *view = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 200, 100)];
+    [view setBackgroundColor:[UIColor whiteColor]];
+
+    UIButton *button = [[UIButton alloc] initWithFrame:CGRectMake(50, 25, 100, 50)];
+    [button setBackgroundColor:[UIColor redColor]];
+    [view addSubview:button];
+
+    SnapshotVerifyWithHitTargets(view, nil, YES, 1, 1);
 }
 
 @end

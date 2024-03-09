@@ -46,7 +46,9 @@ final class ElementSelectionViewController: AccessibilityViewController {
     // MARK: - Life Cycle
 
     init(configurations: [ViewConfiguration]) {
-        views = configurations.map { configuration in
+        super.init(nibName: nil, bundle: nil)
+
+        rootView.views = configurations.map { configuration in
             let view: UIView
             switch configuration {
             case let .accessibilityElement(accessibilityElementsHidden: accessibilityElementsHidden, isHidden: isHidden):
@@ -70,15 +72,13 @@ final class ElementSelectionViewController: AccessibilityViewController {
                 view.isHidden = isHidden
             }
 
-            view.frame.size = CGSize(width: 64, height: 64)
+            view.bounds.size = CGSize(width: 64, height: 64)
             view.layer.cornerRadius = 32
             view.backgroundColor = .lightGray
             view.accessibilityLabel = "Lorem ipsum"
 
             return view
         }
-
-        super.init(nibName: nil, bundle: nil)
     }
 
     @available(*, unavailable)
@@ -88,27 +88,14 @@ final class ElementSelectionViewController: AccessibilityViewController {
 
     // MARK: - Private Properties
 
-    private let views: [UIView]
+    private var rootView: View {
+        return view as! View
+    }
 
     // MARK: - UIViewController
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        views.forEach { view.addSubview($0) }
-    }
-
-    override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-
-        let statusBarHeight = UIApplication.shared.statusBarFrame.height
-
-        var distributionSpecifiers: [ViewDistributionSpecifying] = [ statusBarHeight.fixed, 1.flexible ]
-        for subview in views {
-            distributionSpecifiers.append(subview)
-            distributionSpecifiers.append(1.flexible)
-        }
-        view.applySubviewDistribution(distributionSpecifiers)
+    override func loadView() {
+        view = View()
     }
 
 }
@@ -120,10 +107,74 @@ extension ElementSelectionViewController {
     static func makeConfigurationSelectionViewController(
         presentingViewController: UIViewController
     ) -> UIViewController {
-        return makeAlertControllerForElementSelection(
-            presentingViewController: presentingViewController,
-            existingConfigurations: []
+        func selectConfigurations(_ configurations: [ElementSelectionViewController.ViewConfiguration]) {
+            let elementSelectionViewController = ElementSelectionViewController(configurations: configurations)
+            elementSelectionViewController.modalPresentationStyle = .fullScreen
+            presentingViewController.present(elementSelectionViewController, animated: true, completion: nil)
+        }
+
+        let alertController = UIAlertController(
+            title: nil,
+            message: nil,
+            preferredStyle: .actionSheet
         )
+
+        alertController.addAction(.init(title: "Two Accessibility Elements", style: .default) { _ in
+            selectConfigurations(.twoAccessibilityElements)
+        })
+
+        alertController.addAction(.init(title: "Accessibility Element with Elements Hidden", style: .default) { _ in
+            selectConfigurations(.accessibilityElementWithElementsHidden)
+        })
+
+        alertController.addAction(.init(title: "Accessibility Element Hidden", style: .default) { _ in
+            selectConfigurations(.accessibilityElementHidden)
+        })
+
+        alertController.addAction(.init(title: "No Accessibility Elements", style: .default) { _ in
+            selectConfigurations(.noAccessibilityElements)
+        })
+
+        alertController.addAction(.init(title: "Mixed Accessibility Elements", style: .default) { _ in
+            selectConfigurations(.mixedAccessibilityElements)
+        })
+
+        alertController.addAction(.init(title: "Accessibility Container", style: .default) { _ in
+            selectConfigurations(.accessibilityContainer)
+        })
+
+        alertController.addAction(.init(title: "Accessibility Container With Elements Hidden", style: .default) { _ in
+            selectConfigurations(.accessibilityContainerWithElementsHidden)
+        })
+
+        alertController.addAction(.init(title: "Accessibility Container Hidden", style: .default) { _ in
+            selectConfigurations(.accessibilityContainerHidden)
+        })
+
+        alertController.addAction(.init(title: "Grouped Views", style: .default) { _ in
+            selectConfigurations(.groupedViews)
+        })
+
+        alertController.addAction(.init(title: "Grouped Views In Parent That Hides Elements", style: .default) { _ in
+            selectConfigurations(.groupedViewsInParentThatHidesElements)
+        })
+
+        alertController.addAction(.init(title: "Grouped Views In Hidden Parent", style: .default) { _ in
+            selectConfigurations(.groupedViewsInHiddenParent)
+        })
+
+        alertController.addAction(.init(title: "Custom", style: .default, handler: { _ in
+            presentingViewController.present(
+                makeAlertControllerForElementSelection(
+                    presentingViewController: presentingViewController,
+                    existingConfigurations: []
+                ),
+                animated: true,
+                completion: nil
+            )
+        }))
+
+        return alertController
     }
 
     private static func makeAlertControllerForElementSelection(
@@ -206,6 +257,122 @@ extension ElementSelectionViewController {
         }
 
         return alertController
+    }
+
+}
+
+// MARK: -
+
+extension Array where Element == ElementSelectionViewController.ViewConfiguration {
+
+    static var twoAccessibilityElements: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+        ]
+    }
+
+    static var accessibilityElementWithElementsHidden: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .accessibilityElement(accessibilityElementsHidden: true, isHidden: false),
+        ]
+    }
+
+    static var accessibilityElementHidden: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: true),
+        ]
+    }
+
+    static var noAccessibilityElements: [Element] {
+        return [
+            .nonAccessibilityElement,
+            .nonAccessibilityElement,
+        ]
+    }
+
+    static var mixedAccessibilityElements: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .nonAccessibilityElement,
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .nonAccessibilityElement,
+        ]
+    }
+
+    static var accessibilityContainer: [Element] {
+        return [
+            .accessibilityContainer(accessibilityElementsHidden: false, isHidden: false),
+        ]
+    }
+
+    static var accessibilityContainerWithElementsHidden: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .accessibilityContainer(accessibilityElementsHidden: true, isHidden: false),
+        ]
+    }
+
+    static var accessibilityContainerHidden: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .accessibilityContainer(accessibilityElementsHidden: false, isHidden: true),
+        ]
+    }
+
+    static var groupedViews: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .viewWithAccessibleSubviews(accessibilityElementsHidden: false, isHidden: false),
+        ]
+    }
+
+    static var groupedViewsInParentThatHidesElements: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .viewWithAccessibleSubviews(accessibilityElementsHidden: true, isHidden: false),
+        ]
+    }
+
+    static var groupedViewsInHiddenParent: [Element] {
+        return [
+            .accessibilityElement(accessibilityElementsHidden: false, isHidden: false),
+            .viewWithAccessibleSubviews(accessibilityElementsHidden: false, isHidden: true),
+        ]
+    }
+
+}
+
+// MARK: -
+
+private extension ElementSelectionViewController {
+
+    final class View: UIView {
+
+        // MARK: - Public Properties
+
+        var views: [UIView] = [] {
+            didSet {
+                oldValue.forEach { $0.removeFromSuperview() }
+                views.forEach { addSubview($0) }
+            }
+        }
+
+        // MARK: - UIView
+
+        override func layoutSubviews() {
+            let statusBarHeight = window?.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+
+            var distributionSpecifiers: [ViewDistributionSpecifying] = [ statusBarHeight.fixed, 1.flexible ]
+            for subview in views {
+                distributionSpecifiers.append(subview)
+                distributionSpecifiers.append(1.flexible)
+            }
+            applyVerticalSubviewDistribution(distributionSpecifiers)
+        }
+
     }
 
 }
